@@ -1,0 +1,308 @@
+-- Городецкая Мария Алексеевна
+-- БИВ155
+-- Предмет "Базы данных"
+-- Вариант 7
+/*
+Л. р. №1. Создание и заполнение отношений БД собственников квартир.
+1. Отношение "Адреса" (поля "Номер здания" (ПК), "Название улицы", "Номер дома").
+2. Отношение "Собственники" (поля "Идентификатор" (ПК), "ФИО", "Дата рождения", "Пол").
+3. Отношение "Документы" (поля "Владелец" (ВнК), "Тип документа", "Серия документа", "Номер документа", "Кем и когда выдан").
+4. Отношение "Владение":
+Содержимое поля 	Тип 	Длина 	Дес. 	Примечание
+Владелец 			N 		6 		0 		внешний ключ к таблице "Собственники"
+Номер здания 		N 		6 		0 		внешний ключ к таблице "Адреса"
+Номер квартиры 		N 		4 				обязательное поле
+Доля 				С 		8 				часть квартиры, которой он владеет (например, 1, 1/3, 0.25 и т.д.)
+Начало владения 	D 						обязательное поле
+Окончание владения 	D
+*/
+
+-- Решение 
+
+-- Создание таблиц.
+
+/*
+	Для полей "Номер здания", "Идентификатор" и "Владелец" был выбран целочисленный положительный тип.
+	
+*/
+
+
+CREATE TABLE adresses(
+ 	buildingID numeric(6) PRIMARY KEY,
+	street varchar(50) NOT NULL,
+	buildingNumber numeric(3) NOT NULL);
+
+CREATE TABLE owners(
+	ownerID numeric(6) PRIMARY KEY,
+	fio varchar(100) NOT NULL,
+	datebirth date NOT NULL, 
+	sex varchar(1) NOT NULL);
+
+CREATE TABLE documents(
+	ownerID numeric(6) REFERENCES owners(ownerID), 
+	type varchar(50) NOT NULL,
+	series numeric(2) NOT NULL, 
+	num numeric(3) NOT NULL,
+	issued varchar(100) NOT NULL); 
+
+CREATE TABLE ownership(
+	ownerID numeric(6) REFERENCES owners(ownerID),
+	buildingID numeric(6) REFERENCES adresses(buildingID),
+	apartment numeric(4) NOT NULL,
+	share varchar(8) NOT NULL, 
+	ownbegin date NOT NULL,
+	ownend date);
+
+-- Создание Trigger-ов
+/*
+	Отношение "Адреса"
+	Номер здания 		- положительное число, отличное от 0.
+	Номер дома 			- положительное число, отличное от 0.
+*/
+
+delimiter // 
+create trigger check_1_adresses before insert on adresses
+for each row 
+begin 
+	if (new.buildingID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: buildingID needs to be more then 0'; 
+	end if;
+	if (new.buildingNumber <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: buildingNumber needs to be more then 0'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+
+delimiter // 
+create trigger check_2_adresses before update on adresses
+for each row 
+begin 
+	if (new.buildingID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: buildingID needs to be more then 0'; 
+	end if;
+	if (new.buildingNumber <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: buildingNumber needs to be more then 0'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+/*
+	Отношение "Собственники"
+	Идентификатор 		- положительное число, отличное от 0.
+	Пол 				- F или M, т.е. Female / Male.
+*/
+
+delimiter // 
+create trigger check_1_owners before insert on owners
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.sex != 'm' && new.sex != 'f') then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: sex needs to be M or F'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+
+delimiter // 
+create trigger check_2_owners before update on owners
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.sex != 'm' && new.sex != 'f') then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: sex needs to be M or F'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+/*
+	Отношение "Документы"
+	Идентификатор 		- положительное число, отличное от 0.
+	Тип документа		- passport или drivingLicence или IDcard.
+	Серия 				- положительное число, отличное от 0.
+	Номер 				- положительное число, отличное от 0.
+*/
+
+delimiter // 
+create trigger check_1_documents before insert on documents
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.type not in ('passport', 'drivingLicence', 'IDcard')) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: wrong type (passport, drivingLicence, IDcard)'; 
+	end if; 
+	if (new.series <= 0) then
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: series needs to be more then 0'; 
+	end if;
+	if (new.num <= 0) then
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: number needs to be more then 0'; 
+	end if;
+end; 
+//
+delimiter ;
+
+
+delimiter // 
+create trigger check_2_documents before update on documents
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.type not in ('passport', 'drivingLicence', 'IDcard')) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: wrong type (passport, drivingLicence, IDcard)'; 
+	end if; 
+	if (new.series <= 0) then
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: series needs to be more then 0'; 
+	end if;
+	if (new.num <= 0) then
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: number needs to be more then 0'; 
+	end if;
+end; 
+//
+delimiter ;
+
+/*
+	Отношение "Владение"
+	Владелец 	 		- положительное число, отличное от 0.
+	Номер здания 		- положительное число, отличное от 0.
+	Номер квартиры 		- положительное число, отличное от 0.
+	Окончание владения 	- позже Начала владения. Возможно позже, чем текущая дата.
+
+*/
+
+delimiter // 
+create trigger check_1_ownership before insert on ownership
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.buildingID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.apartment <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: apartment needs to be more then 0'; 
+	end if; 
+	if (new.ownend is not NULL && new.ownend <= new.ownbegin) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownend needs to be before ownbegin or be null'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+
+delimiter // 
+create trigger check_2_ownership before update on ownership
+for each row 
+begin 
+	if (new.ownerID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.buildingID <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownerID needs to be more then 0'; 
+	end if;
+	if (new.apartment <= 0) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: apartment needs to be more then 0'; 
+	end if; 
+	if (new.ownend is not NULL && new.ownend <= new.ownbegin) then 
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Cannot add row: ownend needs to be before ownbegin or be null'; 
+	end if; 
+end; 
+//
+delimiter ;
+
+-- Заполнение 
+
+INSERT INTO adresses values(1, 'Olav M Troviks vei', 18);
+INSERT INTO adresses values(2, 'Olav M Troviks vei', 2);
+INSERT INTO adresses values(3, 'Chkalova street', 13);
+INSERT INTO adresses values(4, 'Chkalova street', 14);
+INSERT INTO adresses values(5, 'Lillestrom vei', 7);
+
+INSERT INTO owners values(1, 'Mairenn Haraton', '1997-04-08', 'F');
+INSERT INTO owners values(2, 'Veronica Haraton', '1997-06-19', 'F');
+INSERT INTO owners values(3, 'Joachim Haraton', '1994-06-17', 'M');
+INSERT INTO owners values(4, 'Anna Haraton', '1970-02-12', 'F');
+INSERT INTO owners values(5, 'Felix Haraton', '1960-03-15', 'M');
+INSERT INTO owners values(6, 'Natasha Haraton', '1997-07-24', 'F');
+INSERT INTO owners values(7, 'Alex Haraton', '1992-04-15', 'F');
+INSERT INTO owners values(8, 'Derek Haraton', '1969-03-21', 'M');
+INSERT INTO owners values(9, 'Peter Haraton', '2000-05-30', 'M');
+INSERT INTO owners values(10, 'Helen Haraton', '2002-10-20', 'F');
+INSERT INTO owners values(11, 'Rick Moonlight', '1990-10-21', 'M');
+INSERT INTO owners values(12, 'Sedric Greenfield', '2001-11-01', 'M');
+INSERT INTO owners values(13, 'Catline Lipton', '2005-10-05', 'F');
+INSERT INTO owners values(14, 'Catline Haraton', '1980-03-05', 'F');
+
+INSERT INTO documents values(1, 'passport', 10, 111, 'Norwegian Government, Oslo, 08. april 2020');
+INSERT INTO documents values(3, 'passport', 23, 345, 'Norwegian Government, Lillestrom, 19. jule 1997');
+INSERT INTO documents values(11, 'drivingLicence', 67, 891, 'Swedish Government, Stockholm');
+INSERT INTO documents values(12, 'IDcard', 34, 231, 'Russian Government, Mosocow');
+
+INSERT INTO ownership values(1, 1, 207, '1', '2017-08-01', '2017-12-31');
+INSERT INTO ownership values(1, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(2, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(3, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(4, 5, 301, '0.1', '2010-09-01', '2018-04-01');
+INSERT INTO ownership values(5, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(6, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(7, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(8, 5, 301, '0.1', '2010-09-01', '2020-03-02');
+INSERT INTO ownership values(9, 5, 301, '0.1', '2010-09-01', NULL);
+INSERT INTO ownership values(10, 5, 301, '0.05', '2010-09-01', NULL);
+INSERT INTO ownership values(14, 5, 301, '0.05', '2010-09-01', NULL);
+INSERT INTO ownership values(11, 3, 13, '1/3', '1990-02-04', NULL);
+INSERT INTO ownership values(1, 2, 1, '1/30', '2010-09-01', '2016-08-09');
+INSERT INTO ownership values(12, 3, 14, '1', '2000-04-03', NULL);
+INSERT INTO ownership values(13, 4, 12, '1', '1997-02-01', NULL);
+INSERT INTO ownership values(2, 3, 14, '0.1', '1940-05-05', '2000-04-03');
+
+-- Примечание 
+
+/*
+	Кроме имеющихся trigger-ов хотелось бы добавить проверку на поля "Доля" в отношении "Владение",
+	но такая проверка в силу нечисленного, а строкового типа, 
+	и огромного количества вариантов "например, 1, 1/3, 0.25 и т.д." (см, задание),
+	является затруднительной.
+	
+	Также мы считаем, что допустимо, что сумма долей меньше единицы (допустим, мы не знаем информацию
+	о каком-то из владельцев).
+	Конечно, в идеальном случае стоит проверить, что сумму долей не превышает единицы.
+	
+*/
