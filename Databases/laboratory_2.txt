@@ -32,19 +32,28 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
 
 -- 2
 -- Cобственников с перечнем их документов (в том числе тех, у которых нет документов)
--- WRONG RESULT
 
 SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.num 
   FROM owners
-    INNER JOIN documents ON owners.ownerid=documents.ownerid;
-+---------+-------------------+----------------+--------+-----+
-| ownerid | fio               | type           | series | num |
-+---------+-------------------+----------------+--------+-----+
-|       1 | Mairenn Haraton   | passport       |     10 | 111 |
-|       3 | Joachim Haraton   | passport       |     23 | 345 |
-|      11 | Rick Moonlight    | drivingLicence |     67 | 891 |
-|      12 | Sedric Greenfield | IDcard         |     34 | 231 |
-+---------+-------------------+----------------+--------+-----+
+    LEFT JOIN documents ON owners.ownerid=documents.ownerid;
++---------+-------------------+----------------+--------+------+
+| ownerid | fio               | type           | series | num  |
++---------+-------------------+----------------+--------+------+
+|       1 | Mairenn Haraton   | passport       |     10 |  111 |
+|       3 | Joachim Haraton   | passport       |     23 |  345 |
+|      11 | Rick Moonlight    | drivingLicence |     67 |  891 |
+|      12 | Sedric Greenfield | IDcard         |     34 |  231 |
+|       2 | Veronica Haraton  | NULL           |   NULL | NULL |
+|       4 | Anna Haraton      | NULL           |   NULL | NULL |
+|       5 | Felix Haraton     | NULL           |   NULL | NULL |
+|       6 | Natasha Haraton   | NULL           |   NULL | NULL |
+|       7 | Alex Haraton      | NULL           |   NULL | NULL |
+|       8 | Derek Haraton     | NULL           |   NULL | NULL |
+|       9 | Peter Haraton     | NULL           |   NULL | NULL |
+|      10 | Helen Haraton     | NULL           |   NULL | NULL |
+|      13 | Catline Lipton    | NULL           |   NULL | NULL |
+|      14 | Catline Haraton   | NULL           |   NULL | NULL |
++---------+-------------------+----------------+--------+------+
 
 -- 3
 -- Квартир, у которых более 10 собственников
