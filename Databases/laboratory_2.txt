@@ -32,6 +32,7 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
 
 -- 2
 -- Cобственников с перечнем их документов (в том числе тех, у которых нет документов)
+-- WRONG RESULT
 
 SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.num 
   FROM owners
@@ -50,6 +51,18 @@ SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.n
 
 -- 4
 -- Текущих собственников квартир по улице Чкалова
+
+SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
+  FROM owners
+    INNER JOIN ownership ON owners.ownerid=ownership.ownerid AND ownership.ownend IS NULL
+    INNER JOIN (select * from adresses where street='Chkalova street') as tmp ON tmp.buildingid=ownership.buildingid;
++---------+-------------------+-----------------+----------------+
+| ownerid | fio               | street          | buildingNumber |
++---------+-------------------+-----------------+----------------+
+|      11 | Rick Moonlight    | Chkalova street |             13 |
+|      12 | Sedric Greenfield | Chkalova street |             13 |
+|      13 | Catline Lipton    | Chkalova street |             14 |
++---------+-------------------+-----------------+----------------+
 
 -- 5
 -- Квартир, у которых в настоящее время нет собственников
