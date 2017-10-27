@@ -49,24 +49,6 @@ SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.n
 -- 3
 -- Квартир, у которых более 10 собственников
 
--- 4
--- Текущих собственников квартир по улице Чкалова
-
-SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
-  FROM owners
-    INNER JOIN ownership ON owners.ownerid=ownership.ownerid AND ownership.ownend IS NULL
-    INNER JOIN (select * from adresses where street='Chkalova street') as tmp ON tmp.buildingid=ownership.buildingid;
-+---------+-------------------+-----------------+----------------+
-| ownerid | fio               | street          | buildingNumber |
-+---------+-------------------+-----------------+----------------+
-|      11 | Rick Moonlight    | Chkalova street |             13 |
-|      12 | Sedric Greenfield | Chkalova street |             13 |
-|      13 | Catline Lipton    | Chkalova street |             14 |
-+---------+-------------------+-----------------+----------------+
-
--- 5
--- Квартир, у которых в настоящее время нет собственников
-
 -- 1 вариант 
 select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
 	LEFT JOIN (select count(*) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
@@ -110,4 +92,21 @@ count(1)
 Первый вариант, как правило, работает быстрее, из-за более эффективного использования индексирования. Поскольку в данном случае ownerid всегда NOT NULL, выигрыш будет не очень большим, но выигрыш тем бельше, чем чаще в поле ownerid будут встречаться значения NULL
 
 */
-  
+
+-- 4
+-- Текущих собственников квартир по улице Чкалова
+
+SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
+  FROM owners
+    INNER JOIN ownership ON owners.ownerid=ownership.ownerid AND ownership.ownend IS NULL
+    INNER JOIN (select * from adresses where street='Chkalova street') as tmp ON tmp.buildingid=ownership.buildingid;
++---------+-------------------+-----------------+----------------+
+| ownerid | fio               | street          | buildingNumber |
++---------+-------------------+-----------------+----------------+
+|      11 | Rick Moonlight    | Chkalova street |             13 |
+|      12 | Sedric Greenfield | Chkalova street |             13 |
+|      13 | Catline Lipton    | Chkalova street |             14 |
++---------+-------------------+-----------------+----------------+
+
+-- 5
+-- Квартир, у которых в настоящее время нет собственников
