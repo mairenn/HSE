@@ -15,7 +15,8 @@
   квартир, у которых в настоящее время нет собственников.
 */
 
--- Eдиноличных владельцев помещений (доля которых равна 1) с указанием адреса квартиры, которой он владеет;
+-- 1
+-- Eдиноличных владельцев помещений (доля которых равна 1) с указанием адреса квартиры, которой он владеет
 
 SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, adresses.buildingNumber, tmp.apartment
   FROM owners
@@ -28,3 +29,27 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
 |      12 | Sedric Greenfield |          3 | 1     | Chkalova street    |             13 |        14 |
 |      13 | Catline Lipton    |          4 | 1     | Chkalova street    |             14 |        12 |
 +---------+-------------------+------------+-------+--------------------+----------------+-----------+
+
+-- 2
+-- Cобственников с перечнем их документов (в том числе тех, у которых нет документов)
+
+SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.num 
+  FROM owners
+    INNER JOIN documents ON owners.ownerid=documents.ownerid;
++---------+-------------------+----------------+--------+-----+
+| ownerid | fio               | type           | series | num |
++---------+-------------------+----------------+--------+-----+
+|       1 | Mairenn Haraton   | passport       |     10 | 111 |
+|       3 | Joachim Haraton   | passport       |     23 | 345 |
+|      11 | Rick Moonlight    | drivingLicence |     67 | 891 |
+|      12 | Sedric Greenfield | IDcard         |     34 | 231 |
++---------+-------------------+----------------+--------+-----+
+
+-- 3
+-- Квартир, у которых более 10 собственников
+
+-- 4
+-- Текущих собственников квартир по улице Чкалова
+
+-- 5
+-- Квартир, у которых в настоящее время нет собственников
