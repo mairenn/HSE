@@ -66,3 +66,48 @@ SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
 
 -- 5
 -- Квартир, у которых в настоящее время нет собственников
+
+-- 1 вариант 
+select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
+	LEFT JOIN (select count(*) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
+  
++------------+----------------+----------------+-----------+-----------+
+| buildingid | street         | buildingnumber | apartment | numowners |
++------------+----------------+----------------+-----------+-----------+
+|          5 | Lillestrom vei |              7 |       301 |        11 |
++------------+----------------+----------------+-----------+-----------+
+1 row in set (0,01 sec)
+  
+-- 2 вариант
+select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
+	LEFT JOIN (select count(ownerid) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
+  
++------------+----------------+----------------+-----------+-----------+
+| buildingid | street         | buildingnumber | apartment | numowners |
++------------+----------------+----------------+-----------+-----------+
+|          5 | Lillestrom vei |              7 |       301 |        11 |
++------------+----------------+----------------+-----------+-----------+
+1 row in set (0,00 sec)
+  
+-- 3 вариант
+select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
+	LEFT JOIN (select count(1) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
+  
++------------+----------------+----------------+-----------+-----------+
+| buildingid | street         | buildingnumber | apartment | numowners |
++------------+----------------+----------------+-----------+-----------+
+|          5 | Lillestrom vei |              7 |       301 |        11 |
++------------+----------------+----------------+-----------+-----------+
+1 row in set (0,00 sec)
+
+/*
+Возможны три варианта подсчета числа владельцев:
+
+count(*)
+count(ownerid)
+count(1)
+
+Первый вариант, как правило, работает быстрее, из-за более эффективного использования индексирования. Поскольку в данном случае ownerid всегда NOT NULL, выигрыш будет не очень большим, но выигрыш тем бельше, чем чаще в поле ownerid будут встречаться значения NULL
+
+*/
+  
