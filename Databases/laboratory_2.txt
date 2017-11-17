@@ -22,6 +22,8 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
   FROM owners
     INNER JOIN (select * from ownership where share='1') as tmp ON owners.ownerid=tmp.ownerid
     INNER JOIN adresses ON tmp.buildingid=adresses.buildingid;
+
+/*
 +---------+-------------------+------------+-------+--------------------+----------------+-----------+
 | ownerid | fio               | buildingID | share | street             | buildingNumber | apartment |
 +---------+-------------------+------------+-------+--------------------+----------------+-----------+
@@ -29,6 +31,7 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
 |      12 | Sedric Greenfield |          3 | 1     | Chkalova street    |             13 |        14 |
 |      13 | Catline Lipton    |          4 | 1     | Chkalova street    |             14 |        12 |
 +---------+-------------------+------------+-------+--------------------+----------------+-----------+
+*/
 
 -- 2
 -- Cобственников с перечнем их документов (в том числе тех, у которых нет документов)
@@ -36,6 +39,7 @@ SELECT owners.ownerid, owners.fio, tmp.buildingid, tmp.share, adresses.street, a
 SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.num 
   FROM owners
     LEFT JOIN documents ON owners.ownerid=documents.ownerid;
+/*
 +---------+-------------------+----------------+--------+------+
 | ownerid | fio               | type           | series | num  |
 +---------+-------------------+----------------+--------+------+
@@ -54,6 +58,7 @@ SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.n
 |      13 | Catline Lipton    | NULL           |   NULL | NULL |
 |      14 | Catline Haraton   | NULL           |   NULL | NULL |
 +---------+-------------------+----------------+--------+------+
+*/
 
 -- 3
 -- Квартир, у которых более 10 собственников
@@ -61,35 +66,40 @@ SELECT owners.ownerid, owners.fio, documents.type, documents.series, documents.n
 -- 1 вариант 
 select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
 	LEFT JOIN (select count(*) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
-  
+ 
+/*
 +------------+----------------+----------------+-----------+-----------+
 | buildingid | street         | buildingnumber | apartment | numowners |
 +------------+----------------+----------------+-----------+-----------+
 |          5 | Lillestrom vei |              7 |       301 |        11 |
 +------------+----------------+----------------+-----------+-----------+
 1 row in set (0,01 sec)
+*/
   
 -- 2 вариант
 select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
 	LEFT JOIN (select count(ownerid) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
-  
+
+/*
 +------------+----------------+----------------+-----------+-----------+
 | buildingid | street         | buildingnumber | apartment | numowners |
 +------------+----------------+----------------+-----------+-----------+
 |          5 | Lillestrom vei |              7 |       301 |        11 |
 +------------+----------------+----------------+-----------+-----------+
 1 row in set (0,00 sec)
+*/
   
 -- 3 вариант
 select adresses.buildingid, adresses.street, adresses.buildingnumber, tmp.apartment, tmp.numowners from adresses 
 	LEFT JOIN (select count(1) as numowners, buildingid, apartment from ownership group by buildingid, apartment) as tmp ON adresses.buildingid=tmp.buildingid where numowners>10;
-  
+/*  
 +------------+----------------+----------------+-----------+-----------+
 | buildingid | street         | buildingnumber | apartment | numowners |
 +------------+----------------+----------------+-----------+-----------+
 |          5 | Lillestrom vei |              7 |       301 |        11 |
 +------------+----------------+----------------+-----------+-----------+
 1 row in set (0,00 sec)
+*/
 
 /*
 Возможны три варианта подсчета числа владельцев:
@@ -98,7 +108,7 @@ count(*)
 count(ownerid)
 count(1)
 
-Первый вариант, как правило, работает быстрее, из-за более эффективного использования индексирования. Поскольку в данном случае ownerid всегда NOT NULL, выигрыш будет не очень большим, но выигрыш тем бельше, чем чаще в поле ownerid будут встречаться значения NULL
+Первый варианта работал бы быстрее, если бы были значения NULL в таблице. В данном случае это не так заметно на маленькой базе данных.
 
 */
 
@@ -109,6 +119,7 @@ SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
   FROM owners
     INNER JOIN ownership ON owners.ownerid=ownership.ownerid AND ownership.ownend IS NULL
     INNER JOIN (select * from adresses where street='Chkalova street') as tmp ON tmp.buildingid=ownership.buildingid;
+/*
 +---------+-------------------+-----------------+----------------+
 | ownerid | fio               | street          | buildingNumber |
 +---------+-------------------+-----------------+----------------+
@@ -116,6 +127,25 @@ SELECT owners.ownerid, owners.fio, tmp.street, tmp.buildingNumber
 |      12 | Sedric Greenfield | Chkalova street |             13 |
 |      13 | Catline Lipton    | Chkalova street |             14 |
 +---------+-------------------+-----------------+----------------+
+*/
 
 -- 5
 -- Квартир, у которых в настоящее время нет собственников
+
+/* Не имеют в настоящее время собственника квартиры, для которых количество покупок (дат покупок) равно количеству продаж (дат продаж).
+Чтобы отсеить квартиры, у которых окончание владения предусмотрено в будущем (продажа запланирована, но не совершилась),
+находим максимальную дату продажи, которая должна быть меньше текущей даты. 
+
+SELECT noowner.buildingid, adresses.street, adresses.buildingNumber , noowner.apartment, noowner.buys, noowner.sells, noowner.latest from adresses
+	RIGHT JOIN
+	(select tmp.buildingid, tmp.apartment, tmp.buys, tmp.sells, tmp.latest from
+	(select count(DISTINCT ownbegin) as buys, count(DISTINCT ownend) as sells, MAX(ownend) latest, buildingid, apartment from ownership GROUP by buildingid, apartment) as tmp
+	where tmp.buys=tmp.sells AND tmp.latest<curdate()) as noowner
+	ON adresses.buildingid=noowner.buildingid;
+\*
++------------+--------------------+----------------+-----------+------+-------+------------+
+| buildingid | street             | buildingNumber | apartment | buys | sells | latest     |
++------------+--------------------+----------------+-----------+------+-------+------------+
+|          2 | Olav M Troviks vei |              2 |         1 |    1 |     1 | 2016-08-09 |
++------------+--------------------+----------------+-----------+------+-------+------------+
+*/
